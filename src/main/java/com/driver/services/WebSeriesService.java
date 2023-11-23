@@ -7,6 +7,7 @@ import com.driver.repository.ProductionHouseRepository;
 import com.driver.repository.WebSeriesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.support.StandardMultipartHttpServletRequest;
 
 @Service
 public class WebSeriesService {
@@ -24,7 +25,46 @@ public class WebSeriesService {
         //use function written in Repository Layer for the same
         //Dont forget to save the production and webseries Repo
 
-        return null;
+        if(webSeriesRepository.findBySeriesName(webSeriesEntryDto.getSeriesName())!=null){
+            throw new Exception("Series is already present");
+        }
+
+
+        WebSeries series = new WebSeries();
+        series.setSeriesName(webSeriesEntryDto.getSeriesName());
+        series.setAgeLimit(webSeriesEntryDto.getAgeLimit());
+        series.setRating(webSeriesEntryDto.getRating());
+        series.setSubscriptionType(webSeriesEntryDto.getSubscriptionType());
+
+        ProductionHouse productionHouse;
+
+
+        try {
+            productionHouse=productionHouseRepository.findById(webSeriesEntryDto.getProductionHouseId()).get();
+        }catch (Exception e){
+            throw new Exception("productionHouse not found");
+        }
+
+        series.setProductionHouse(productionHouse);
+        productionHouse.getWebSeriesList().add(series);
+
+        double oldRating=productionHouse.getRatings();
+        double  newRating=series.getRating();
+
+        int size=productionHouse.getWebSeriesList().size();
+
+        double updateRating=oldRating+(newRating-oldRating)/size;
+
+        productionHouse.setRatings(updateRating);
+
+        productionHouseRepository.save(productionHouse);
+
+        WebSeries update=webSeriesRepository.save(series);
+
+        return update.getId();
+
+
+
     }
 
 }
